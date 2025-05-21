@@ -29,7 +29,7 @@ class ReportSummary(BaseModel):
     summary: str
     full_report: dict
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PredictedNeurologyReportRecord(Base):
