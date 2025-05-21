@@ -39,7 +39,7 @@ class PredictedNeurologyReportRecord(Base):
     summary = Column(Text, nullable=False)
     full_report = Column(JSONB, nullable=False)
     real_report_id = Column(Integer, ForeignKey("neurology_reports.id"), nullable=True)
-    real_report = relationship("RealNeurologyReport", back_populates="generated_reports")
+    real_report = relationship("NeurologyReportRecord", back_populates="generated_reports")
 
 class NeurologyReportRecord(Base):
     __tablename__ = 'neurology_reports'
@@ -51,7 +51,7 @@ class NeurologyReportRecord(Base):
     full_report = Column(JSONB, nullable=False)
 
     # Backref from NeurologyReportRecord
-    generated_reports = relationship("NeurologyReportRecord", back_populates="real_report")
+    generated_reports = relationship("PredictedNeurologyReportRecord", back_populates="real_report")
 
 
 # Connection string format: 'postgresql://user:password@host:port/database'
