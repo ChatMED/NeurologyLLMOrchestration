@@ -1,3 +1,5 @@
+import os
+
 from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
@@ -55,7 +57,9 @@ class NeurologyReportRecord(Base):
 
 
 # Connection string format: 'postgresql://user:password@host:port/database'
-DATABASE_URL = "postgresql://llm:llm@localhost:5433/chatmed_pipeline"
+server = os.getenv("DB_SERVER","localhost")
+port = os.getenv("DB_PORT","5433")
+DATABASE_URL = f"postgresql://llm:llm@{server}:{port}/chatmed_pipeline"
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 
