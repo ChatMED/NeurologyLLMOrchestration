@@ -1,5 +1,6 @@
 import json
-from typing import List
+from idlelib.query import Query
+from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Depends, Form
 from sqlalchemy.orm import Session
@@ -11,6 +12,8 @@ from db_store import SessionLocal, PredictedNeurologyReportRecord, ReportSummary
 from history_retrieval import generate_neurology_report
 
 from fastapi import FastAPI, Depends, Request
+
+from view_models import ReportViewModel
 
 app = FastAPI(title="Neurology Report API")
 
@@ -111,12 +114,63 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
     return JSONResponse(status_code=404, content={"error": "Report not found"})
 
 @app.get("/report/{report_id}", response_class=HTMLResponse)
-def view_report(report_id: int, request: Request, db: Session = Depends(get_db)):
-    report = db.query(NeurologyReportRecord).filter(NeurologyReportRecord.id == report_id).first()
-    if not report:
+def view_report(report_id: int, request: Request, db: Session = Depends(get_db), predicted_report_id: Optional[int] = None):
+    actual_report = db.query(NeurologyReportRecord).filter(NeurologyReportRecord.id == report_id).first()
+    if not actual_report:
         return HTMLResponse(content="Report not found", status_code=404)
-    return templates.TemplateResponse("report_detail.html", {"request": request, "report": report})
 
+    if predicted_report_id:
+        predicted_report = db.query(PredictedNeurologyReportRecord).filter(
+            PredictedNeurologyReportRecord.id == predicted_report_id,
+            PredictedNeurologyReportRecord.real_report_id == report_id
+        ).first()
+    else:
+        predicted_report = db.query(PredictedNeurologyReportRecord).filter(
+            PredictedNeurologyReportRecord.real_report_id == report_id
+        ).first()
+
+    if not predicted_report:
+        return HTMLResponse(content="Report not found", status_code=404)
+
+    view_model = ReportViewModel(actual_report, predicted_report)
+
+    return templates.TemplateResponse("report_detail.html", {"request": request, "report": view_model})
+
+# @app.get("/report/{actual_report_id}", response_class=HTMLResponse)
+# def view_report(
+#     actual_report_id: int,
+#     request: Request,
+#     predicted_report_id: Optional[int] = Query,
+#     db: Session = Depends(get_db)
+# ):
+#     # Get the actual report
+#     actual_report = db.query(NeurologyReportRecord).filter(
+#         NeurologyReportRecord.id == actual_report_id
+#     ).first()
+#
+#     if not actual_report:
+#         raise HTTPException(status_code=404, detail="Actual report not found")
+#
+#     # Get the predicted report
+#     if predicted_report_id is not None:
+#         predicted_report = db.query(PredictedNeurologyReportRecord).filter(
+#             PredictedNeurologyReportRecord.id == predicted_report_id,
+#             PredictedNeurologyReportRecord.actual_report_id == actual_report_id
+#         ).first()
+#     else:
+#         predicted_report = db.query(PredictedNeurologyReportRecord).filter(
+#             PredictedNeurologyReportRecord.actual_report_id == actual_report_id
+#         ).order_by(PredictedNeurologyReportRecord.id).first()
+#
+#     if not predicted_report:
+#         raise HTTPException(status_code=404, detail="Predicted report not found")
+#
+#     view_model = ReportViewModel(actual_report, predicted_report)
+#
+#     return templates.TemplateResponse("report_detail.html", {
+#         "request": request,
+#         "view_model": view_model
+#     })
 
 @app.post("/report/{report_id}/delete")
 def delete_report(report_id: int, db: Session = Depends(get_db)):
