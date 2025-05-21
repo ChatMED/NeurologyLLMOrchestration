@@ -19,6 +19,7 @@ app = FastAPI(title="Neurology Report API")
 
 templates = Jinja2Templates(directory="templates")
 
+
 @app.get("/reports/add", summary="Submit a neurology report", status_code=201)
 def create_neurology_report():
     db = SessionLocal()
@@ -67,6 +68,7 @@ opinion.
     finally:
         db.close()
 
+
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, db: Session = Depends(get_db)):
     reports = db.query(NeurologyReportRecord).order_by(NeurologyReportRecord.created_at.desc()).all()
@@ -80,12 +82,11 @@ def create_report_form(request: Request):
 
 @app.post("/report/create")
 def create_report(
-    request: Request,
-    case_name: str = Form(...),
-    anamnesis: str = Form(...),
-    db: Session = Depends(get_db)
+        request: Request,
+        case_name: str = Form(...),
+        anamnesis: str = Form(...),
+        db: Session = Depends(get_db)
 ):
-
     from db_store import PredictedNeurologyReportRecord
     import json
 
@@ -100,6 +101,7 @@ def create_report(
     db.refresh(report)
     return RedirectResponse(url=f"/report/{report.id}", status_code=303)
 
+
 @app.get("/reports", response_model=List[ReportSummary])
 def list_reports(db: Session = Depends(get_db)):
     reports = db.query(NeurologyReportRecord).order_by(NeurologyReportRecord.created_at.desc()).all()
@@ -113,28 +115,43 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
         return report.full_report
     return JSONResponse(status_code=404, content={"error": "Report not found"})
 
+
 @app.get("/report/{report_id}", response_class=HTMLResponse)
-def view_report(report_id: int, request: Request, db: Session = Depends(get_db), predicted_report_id: Optional[int] = None):
-    actual_report = db.query(NeurologyReportRecord).filter(NeurologyReportRecord.id == report_id).first()
+def view_report(report_id: int, request: Request, db: Session = Depends(get_db),
+                predicted_report_id: Optional[int] = None):
+    actual_report = db.query(NeurologyReportRecord).filter(
+        NeurologyReportRecord.id == report_id
+    ).first()
+
     if not actual_report:
         return HTMLResponse(content="Report not found", status_code=404)
 
+    # Fetch all predicted records for this report ID once
+    all_predicted_records = db.query(PredictedNeurologyReportRecord).filter(
+        PredictedNeurologyReportRecord.real_report_id == report_id
+    ).all()
+
+    # Select the predicted report from the fetched list
     if predicted_report_id:
-        predicted_report = db.query(PredictedNeurologyReportRecord).filter(
-            PredictedNeurologyReportRecord.id == predicted_report_id,
-            PredictedNeurologyReportRecord.real_report_id == report_id
-        ).first()
+        predicted_report = next(
+            (r for r in all_predicted_records if r.id == predicted_report_id), None
+        )
     else:
-        predicted_report = db.query(PredictedNeurologyReportRecord).filter(
-            PredictedNeurologyReportRecord.real_report_id == report_id
-        ).first()
+        predicted_report = all_predicted_records[0] if all_predicted_records else None
 
     if not predicted_report:
         return HTMLResponse(content="Report not found", status_code=404)
 
-    view_model = ReportViewModel(actual_report, predicted_report)
+    view_model = ReportViewModel(
+        actual_report=actual_report,
+        predicted_report=predicted_report,
+        all_predicted_reports=all_predicted_records
+    )
 
-    return templates.TemplateResponse("report_detail.html", {"request": request, "report": view_model})
+    return templates.TemplateResponse("report_detail.html", {
+        "request": request,
+        "report": view_model
+    })
 
 # @app.get("/report/{actual_report_id}", response_class=HTMLResponse)
 # def view_report(
