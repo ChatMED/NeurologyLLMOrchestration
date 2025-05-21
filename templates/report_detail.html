@@ -1,0 +1,23 @@
+<!-- templates/report_detail.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Neurology Report #{{ report.id }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 2rem; }
+        pre { background-color: #f8f8f8; padding: 1rem; border: 1px solid #ddd; overflow-x: auto; }
+        a { display: inline-block; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <h1>Neurology Report #{{ report.id }}</h1>
+    <p><strong>Created:</strong> {{ report.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+    <p><strong>Summary:</strong> {{ report.summary }}</p>
+
+    <h2>Full Report JSON</h2>
+    <pre>{{ report.full_report | tojson(indent=2) }}</pre>
+
+    <a href="/">← Back to Dashboard</a>
+</body>
+</html>

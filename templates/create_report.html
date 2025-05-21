@@ -1,0 +1,29 @@
+<!-- templates/create_report.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Neurology Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 2rem; }
+        form { max-width: 600px; }
+        label { display: block; margin-top: 1rem; font-weight: bold; }
+        input, textarea, button {
+            width: 100%; padding: 0.5rem; margin-top: 0.5rem; font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Create New Neurology Report</h1>
+    <form method="post" action="/report/create">
+        <label for="case_name">Case Name</label>
+        <input type="text" id="case_name" name="case_name" required>
+
+        <label for="anamnesis">Initial Anamnesis</label>
+        <textarea id="anamnesis" name="anamnesis" rows="8" required></textarea>
+
+        <button type="submit">Generate Report</button>
+    </form>
+    <a href="/">← Back to Dashboard</a>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!-- templates/dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Neurology Reports</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<h1>Neurology Reports Dashboard</h1>
+<a href="/report/create">➕ Create New Report</a>
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Created At</th>
+        <th>Name</th>
+        <th>Summary</th>
+        <th>View JSON</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for report in reports %}
+    <tr>
+        <td>{{ report.id }}</td>
+        <td>{{ report.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ report.name}}</td>
+        <td>{{ report.summary[:100] }}...</td>
+        <td>
+            <a href="/report/{{ report.id }}">View</a>
+
+            <form method="post" action="/report/{{ report.id }}/delete" style="display:inline;"
+                  onsubmit="return confirmDelete();">
+                <button type="submit">Delete</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<script>
+    function confirmDelete() {
+        return confirm("Are you sure you want to permanently delete this report?");
+    }
+</script>
+</body>
+</html>
