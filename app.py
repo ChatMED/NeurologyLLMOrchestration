@@ -47,6 +47,7 @@ opinion.
 """
         report = generate_neurology_report(anamnesa)
         report_record = PredictedNeurologyReportRecord(
+            id=2,
             name="Chapter 19 Two Seizures and!Strong Family History of!Epilepsy",
             summary=report.compressed_summary,
             full_report=json.loads(report.model_dump_json()),
@@ -65,7 +66,7 @@ opinion.
 
 @app.get("/", response_class=HTMLResponse)
 def dashboard(request: Request, db: Session = Depends(get_db)):
-    reports = db.query(PredictedNeurologyReportRecord).order_by(PredictedNeurologyReportRecord.created_at.desc()).all()
+    reports = db.query(NeurologyReportRecord).order_by(NeurologyReportRecord.created_at.desc()).all()
     return templates.TemplateResponse("dashboard.html", {"request": request, "reports": reports})
 
 
@@ -98,20 +99,20 @@ def create_report(
 
 @app.get("/reports", response_model=List[ReportSummary])
 def list_reports(db: Session = Depends(get_db)):
-    reports = db.query(PredictedNeurologyReportRecord).order_by(PredictedNeurologyReportRecord.created_at.desc()).all()
+    reports = db.query(NeurologyReportRecord).order_by(NeurologyReportRecord.created_at.desc()).all()
     return reports
 
 
 @app.get("/reports/{report_id}", response_class=JSONResponse)
 def get_report(report_id: int, db: Session = Depends(get_db)):
-    report = db.query(PredictedNeurologyReportRecord).filter(PredictedNeurologyReportRecord.id == report_id).first()
+    report = db.query(NeurologyReportRecord).filter(NeurologyReportRecord.id == report_id).first()
     if report:
         return report.full_report
     return JSONResponse(status_code=404, content={"error": "Report not found"})
 
 @app.get("/report/{report_id}", response_class=HTMLResponse)
 def view_report(report_id: int, request: Request, db: Session = Depends(get_db)):
-    report = db.query(PredictedNeurologyReportRecord).filter(PredictedNeurologyReportRecord.id == report_id).first()
+    report = db.query(NeurologyReportRecord).filter(NeurologyReportRecord.id == report_id).first()
     if not report:
         return HTMLResponse(content="Report not found", status_code=404)
     return templates.TemplateResponse("report_detail.html", {"request": request, "report": report})
@@ -119,7 +120,7 @@ def view_report(report_id: int, request: Request, db: Session = Depends(get_db))
 
 @app.post("/report/{report_id}/delete")
 def delete_report(report_id: int, db: Session = Depends(get_db)):
-    report = db.query(PredictedNeurologyReportRecord).filter(PredictedNeurologyReportRecord.id == report_id).first()
+    report = db.query(NeurologyReportRecord).filter(NeurologyReportRecord.id == report_id).first()
     if not report:
         return HTMLResponse(content="Report not found", status_code=404)
 
