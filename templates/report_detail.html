@@ -1,58 +1,71 @@
-{#<!-- templates/report_detail.html -->#}
-{#<!DOCTYPE html>#}
-{#<html lang="en">#}
-{#<head>#}
-{#    <meta charset="UTF-8">#}
-{#    <title>Neurology Report #{{ report.id }}</title>#}
-{#    <style>#}
-{#        body { font-family: Arial, sans-serif; padding: 2rem; }#}
-{#        pre { background-color: #f8f8f8; padding: 1rem; border: 1px solid #ddd; overflow-x: auto; }#}
-{#        a { display: inline-block; margin-top: 1rem; }#}
-{#    </style>#}
-{#</head>#}
-{#<body>#}
-{#    <h1>Neurology Report #{{ report.id }}</h1>#}
-{#    <p><strong>Created:</strong> {{ report.created_at.strftime('%Y-%m-%d %H:%M') }}</p>#}
-{#    <p><strong>Summary:</strong> {{ report.summary }}</p>#}
-{##}
-{#    <h2>Full Report JSON</h2>#}
-{#    <pre>{{ report.full_report | tojson(indent=2) }}</pre>#}
-{##}
-{#    <a href="/">← Back to Dashboard</a>#}
-{#</body>#}
-{#</html>#}
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Neurology Report #{{ report.id }}</title>
+    <title>Neurology Report #{{ report.actual_report.id }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             padding: 2rem;
         }
-        .report-container {
+
+        .section-wrapper {
             display: flex;
             gap: 2rem;
+            margin-bottom: 2rem;
+            margin-top: 2rem;
         }
-        .report-column {
+
+        .column-box {
             flex: 1;
-        }
-        pre {
-            background-color: #f8f8f8;
+            background-color: #f9f9f9;
             padding: 1rem;
-            border: 1px solid #ddd;
-            overflow-x: auto;
-            white-space: pre-wrap;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
         }
-        a {
-            display: inline-block;
-            margin-top: 1rem;
+
+        .column-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            color: #222;
+        }
+
+        .metric-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 0.3rem;
+        }
+
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 1rem;
+        }
+
+        .item-title {
+            font-weight: bold;
+        }
+
+        .sub-point {
+            margin-left: 1rem;
+        }
+
+        .confidence {
+            font-style: italic;
+            color: #666;
         }
 
         form.report-select-form {
-            margin-bottom: 1rem;
+            margin-bottom: 2rem;
         }
 
         form.report-select-form label {
@@ -83,41 +96,470 @@
         form.report-select-form button:hover {
             background-color: #0056b3;
         }
+
+        .back-link {
+            margin-top: 2rem;
+            display: inline-block;
+        }
+
+        strong {
+            display: block;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        pre {
+            background-color: #f0f0f0;
+            padding: 0.5rem;
+            overflow-x: auto;
+        }
+
+        .feedback-section {
+    padding: 1em;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.metric-header {
+    font-size: 1.25em;
+    font-weight: bold;
+    margin-bottom: 1em;
+}
+
+.rating-group {
+    margin-bottom: 1.5em;
+    padding: 1em;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #fff;
+}
+
+.rating-group label {
+    margin-right: 0.5em;
+}
+
+.rating-group input[type="radio"] {
+    margin: 0 0.25em;
+}
+
+.rating-group textarea {
+    display: block;
+    margin-top: 0.5em;
+    width: 100%;
+    max-width: 600px;
+    font-size: 1em;
+    padding: 0.5em;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    resize: vertical;
+}
+
+ .submit-button { padding: 0.75rem 1.5rem; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; margin-top: 2rem; transition: background-color 0.3s ease; }
+        .submit-button:hover { background-color: #218838; }
     </style>
 </head>
 <body>
-{#    <h1>Actual Neurology Report #{{ report.actual_report.id }}</h1>#}
-{#    <h1>Predicted Neurology Report #{{ report.predicted_report.id }}</h1>#}
-    <div class="report-column">
-        <form class="report-select-form" method="get" action="/report/{{ report.actual_report.id }}">
-            <label for="predicted_report_id">Select Predicted Report:</label>
-            <select name="predicted_report_id" id="predicted_report_id">
-                {% for pred in report.all_predicted_reports %}
-                    <option value="{{ pred.id }}"
-                        {% if pred.id == report.predicted_report.id %}selected{% endif %}>
-                        {{ pred.id }} - {{ pred.name or 'Unnamed Prediction' }}
-                    </option>
+    <h1>Neurology Report Viewer</h1>
+
+{#    <form class="report-select-form" method="get" action="/report/{{ report.actual_report.id }}">#}
+{#        <label for="predicted_report_id">Select Predicted Report:</label>#}
+{#        <select name="predicted_report_id" id="predicted_report_id">#}
+{#            {% for pred in report.all_predicted_reports %}#}
+{#                <option value="{{ pred.id }}"#}
+{#                        {% if pred.id == report.predicted_report.id %}selected{% endif %}>#}
+{#                    {{ pred.id }} - {{ pred.name or 'Unnamed Prediction' }}#}
+{#                </option>#}
+{#            {% endfor %}#}
+{#        </select>#}
+{#        <button type="submit">View</button>#}
+{#    </form>#}
+
+<form method="post" action="/submit-feedback">
+    <input type="hidden" name="predicted_report_id" value="{{ report.predicted_report.id }}">
+    <input type="hidden" name="actual_report_id" value="{{ report.actual_report.id }}">
+{% set known_keys = ['compressed_summary', 'anatomical_localisations', 'pathophysiologies', 'questions', 'investigations', 'treatments'] %}
+
+<!-- Section 1: Summary -->
+{% set actual_summary = report.actual_report.full_report.get('compressed_summary') %}
+{% set predicted_summary = report.predicted_report.full_report.get('compressed_summary') %}
+{% if actual_summary or predicted_summary %}
+<div class="section-wrapper">
+    <div class="column-box">
+        <div class="column-title">Actual Report</div>
+        <div class="metric-header">Section 1: Summary</div>
+        <p>{{ actual_summary or 'There is no data' }}</p>
+    </div>
+    <div class="column-box">
+        <div class="column-title">Predicted Report</div>
+        <div class="metric-header">Section 1: Summary</div>
+        <p>{{ predicted_summary or 'There is no data' }}</p>
+    </div>
+</div>
+
+<div class="question-box">
+    {% set questions = report.questions_by_section.get('compressed_summary', []) %}
+    {% if questions %}
+        <div class="feedback-section">
+            <div class="metric-header">Your Feedback on Summary</div>
+            {% for q in questions %}
+                <div class="rating-group">
+                    <label><strong>{{ q.text }}</strong></label><br>
+                    {% if 'comment' in q.text|lower %}
+                        <textarea name="comment_{{ q.id }}" rows="3" placeholder="Enter your comment..."></textarea>
+                    {% else %}
+                        {% for i in range(1, 11) %}
+                            <input type="radio" id="q{{ q.id }}_r{{ i }}" name="rating_{{ q.id }}" value="{{ i }}" required>
+                            <label for="q{{ q.id }}_r{{ i }}">{{ i }}</label>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+{% endif %}
+
+<!-- Section 2: Anatomical Localisations & Pathophysiologies -->
+{% set actual_anat = report.actual_report.full_report.get('anatomical_localisations', []) %}
+{% set actual_path = report.actual_report.full_report.get('pathophysiologies', []) %}
+{% set pred_anat = report.predicted_report.full_report.get('anatomical_localisations', []) %}
+{% set pred_path = report.predicted_report.full_report.get('pathophysiologies', []) %}
+{% if actual_anat or actual_path or pred_anat or pred_path %}
+<div class="section-wrapper">
+    <div class="column-box">
+        <div class="column-title">Actual Report</div>
+        <div class="metric-header">Section 2: Anatomical Localisations & Pathophysiologies</div>
+        {% if actual_anat %}
+            <strong>Anatomical Localisations</strong>
+            <ul>
+                {% for item in actual_anat %}
+                <li>
+                    <span class="item-title">{{ item.name }}</span><br>
+                    <span class="sub-point">{{ item.reason }}</span><br>
+                    <span class="confidence">Confidence: {{ (item.confidence * 100) | round(1) }}%</span>
+                </li>
                 {% endfor %}
-            </select>
-            <button type="submit">View</button>
-        </form>
+            </ul>
+        {% endif %}
+        {% if actual_path %}
+            <strong>Pathophysiologies</strong>
+            <ul>
+                {% for item in actual_path %}
+                <li>
+                    <span class="item-title">{{ item.name }}</span><br>
+                    <span class="sub-point">{{ item.reason }}</span><br>
+                    <span class="confidence">Confidence: {{ (item.confidence * 100) | round(1) }}%</span>
+                </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if not actual_anat and not actual_path %}
+            <p class="no-data">There is no data</p>
+        {% endif %}
     </div>
-    <div class="report-container">
-        <div class="report-column">
-            <h2>Actual Report #{{ report.actual_report.id }}</h2>
-            <pre>{{ report.actual_report.full_report | tojson(indent=2) }}</pre>
-        </div>
-{#        <div class="report-column">#}
-{#            <h2>Predicted Report #{{ report.predicted_report.id }}</h2>#}
-{#            <pre>{{ report.predicted_report.full_report | tojson(indent=2) }}</pre>#}
-{#        </div>#}
-
-        <div class="report-column">
-            <h2>Predicted Report #{{ report.predicted_report.id }}</h2>
-            <pre>{{ report.predicted_report.full_report | tojson(indent=2) }}</pre>
-        </div>
+    <div class="column-box">
+        <div class="column-title">Predicted Report</div>
+        <div class="metric-header">Section 2: Anatomical Localisations & Pathophysiologies</div>
+        {% if pred_anat %}
+            <strong>Anatomical Localisations</strong>
+            <ul>
+                {% for item in pred_anat %}
+                <li>
+                    <span class="item-title">{{ item.name }}</span><br>
+                    <span class="sub-point">{{ item.reason }}</span><br>
+                    <span class="confidence">Confidence: {{ (item.confidence * 100) | round(1) }}%</span>
+                </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if pred_path %}
+            <strong>Pathophysiologies</strong>
+            <ul>
+                {% for item in pred_path %}
+                <li>
+                    <span class="item-title">{{ item.name }}</span><br>
+                    <span class="sub-point">{{ item.reason }}</span><br>
+                    <span class="confidence">Confidence: {{ (item.confidence * 100) | round(1) }}%</span>
+                </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if not pred_anat and not pred_path %}
+            <p class="no-data">There is no data</p>
+        {% endif %}
     </div>
+</div>
 
-    <a href="/">← Back to Dashboard</a>
+<div class="question-box">
+    {% set questions = report.questions_by_section.get('anatomical_localisations', []) %}
+    {% if questions %}
+        <div class="feedback-section">
+            <div class="metric-header">Your Feedback on Anatomical Localisation & Pathophysiologies</div>
+            {% for q in questions %}
+                <div class="rating-group">
+                    <label><strong>{{ q.text }}</strong></label><br>
+                    {% if 'comment' in q.text|lower %}
+                        <textarea name="comment_{{ q.id }}" rows="3" placeholder="Enter your comment..."></textarea>
+                    {% else %}
+                        {% for i in range(1, 11) %}
+                            <input type="radio" id="q{{ q.id }}_r{{ i }}" name="rating_{{ q.id }}" value="{{ i }}" required>
+                            <label for="q{{ q.id }}_r{{ i }}">{{ i }}</label>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Section 3: Questions -->
+{% set actual_questions = report.actual_report.full_report.get('questions', []) %}
+{% set predicted_questions = report.predicted_report.full_report.get('questions', []) %}
+{% if actual_questions or predicted_questions %}
+<div class="section-wrapper">
+    <div class="column-box">
+        <div class="column-title">Actual Report</div>
+        <div class="metric-header">Section 3: Diagnostic Questions</div>
+        {% if actual_questions %}
+        <ul>
+            {% for q in actual_questions %}
+            <li>
+                <span class="item-title">Question {{ loop.index }}: {{ q.question }}</span><br>
+                <span class="sub-point">Topic: {{ q.topic }} | Symptom: {{ q.target_sympthom }} | Type: {{ q.question_type }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">There is no data</p>
+        {% endif %}
+    </div>
+    <div class="column-box">
+        <div class="column-title">Predicted Report</div>
+        <div class="metric-header">Section 3: Diagnostic Questions</div>
+        {% if predicted_questions %}
+        <ul>
+            {% for q in predicted_questions %}
+            <li>
+                <span class="item-title">Question {{ loop.index }}: {{ q.question }}</span><br>
+                <span class="sub-point">Topic: {{ q.topic }} | Symptom: {{ q.target_sympthom }} | Type: {{ q.question_type }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">There is no data</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="question-box">
+    {% set questions = report.questions_by_section.get('questions', []) %}
+    {% if questions %}
+        <div class="feedback-section">
+            <div class="metric-header">Your Feedback on suggested questions</div>
+            {% for q in questions %}
+                <div class="rating-group">
+                    <label><strong>{{ q.text }}</strong></label><br>
+                    {% if 'comment' in q.text|lower %}
+                        <textarea name="comment_{{ q.id }}" rows="3" placeholder="Enter your comment..."></textarea>
+                    {% else %}
+                        {% for i in range(1, 11) %}
+                            <input type="radio" id="q{{ q.id }}_r{{ i }}" name="rating_{{ q.id }}" value="{{ i }}" required>
+                            <label for="q{{ q.id }}_r{{ i }}">{{ i }}</label>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Section 4: Investigations -->
+{% set actual_inv = report.actual_report.full_report.get('investigations', []) %}
+{% set predicted_inv = report.predicted_report.full_report.get('investigations', []) %}
+{% if actual_inv or predicted_inv %}
+<div class="section-wrapper">
+    <div class="column-box">
+        <div class="column-title">Actual Report</div>
+        <div class="metric-header">Section 4: Investigations</div>
+        {% if actual_inv %}
+        <ul>
+            {% for inv in actual_inv %}
+            <li>
+                <span class="item-title">{{ inv.test }}</span><br>
+                <span class="sub-point">{{ inv.reason }}</span><br>
+                <span class="confidence">Urgency: {{ inv.urgency }} | {{ inv.mandatory_or_optional }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">There is no data</p>
+        {% endif %}
+    </div>
+    <div class="column-box">
+        <div class="column-title">Predicted Report</div>
+        <div class="metric-header">Section 4: Investigations</div>
+        {% if predicted_inv %}
+        <ul>
+            {% for inv in predicted_inv %}
+            <li>
+                <span class="item-title">{{ inv.test }}</span><br>
+                <span class="sub-point">{{ inv.reason }}</span><br>
+                <span class="confidence">Urgency: {{ inv.urgency }} | {{ inv.mandatory_or_optional }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">There is no data</p>
+        {% endif %}
+    </div>
+</div>
+
+
+<div class="question-box">
+    {% set questions = report.questions_by_section.get('investigations', []) %}
+    {% if questions %}
+        <div class="feedback-section">
+            <div class="metric-header">Your Feedback on Investigations</div>
+            {% for q in questions %}
+                <div class="rating-group">
+                    <label><strong>{{ q.text }}</strong></label><br>
+                    {% if 'comment' in q.text|lower %}
+                        <textarea name="comment_{{ q.id }}" rows="3" placeholder="Enter your comment..."></textarea>
+                    {% else %}
+                        {% for i in range(1, 11) %}
+                            <input type="radio" id="q{{ q.id }}_r{{ i }}" name="rating_{{ q.id }}" value="{{ i }}" required>
+                            <label for="q{{ q.id }}_r{{ i }}">{{ i }}</label>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Section 5: Treatments -->
+{% set actual_treatments = report.actual_report.full_report.get('treatments', []) %}
+{% set predicted_treatments = report.predicted_report.full_report.get('treatments', []) %}
+{% if actual_treatments or predicted_treatments %}
+<div class="section-wrapper">
+    <div class="column-box">
+        <div class="column-title">Actual Report</div>
+        <div class="metric-header">Section 5: Treatments</div>
+        {% if actual_treatments %}
+        <ul>
+            {% for t in actual_treatments %}
+            <li>
+                <span class="item-title">{{ t.diagnosis }}</span><br>
+                <span class="sub-point">{{ t.treatment }}</span><br>
+                <span class="confidence">Timing: {{ t.timing }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">There is no data</p>
+        {% endif %}
+    </div>
+    <div class="column-box">
+        <div class="column-title">Predicted Report</div>
+        <div class="metric-header">Section 5: Treatments</div>
+        {% if predicted_treatments %}
+        <ul>
+            {% for t in predicted_treatments %}
+            <li>
+                <span class="item-title">{{ t.diagnosis }}</span><br>
+                <span class="sub-point">{{ t.treatment }}</span><br>
+                <span class="confidence">Timing: {{ t.timing }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-data">There is no data</p>
+        {% endif %}
+    </div>
+</div>
+
+
+<div class="question-box">
+    {% set questions = report.questions_by_section.get('treatments', []) %}
+    {% if questions %}
+        <div class="feedback-section">
+            <div class="metric-header">Your Feedback on Treatments</div>
+            {% for q in questions %}
+                <div class="rating-group">
+                    <label><strong>{{ q.text }}</strong></label><br>
+                    {% if 'comment' in q.text|lower %}
+                        <textarea name="comment_{{ q.id }}" rows="3" placeholder="Enter your comment..."></textarea>
+                    {% else %}
+                        {% for i in range(1, 11) %}
+                            <input type="radio" id="q{{ q.id }}_r{{ i }}" name="rating_{{ q.id }}" value="{{ i }}" required>
+                            <label for="q{{ q.id }}_r{{ i }}">{{ i }}</label>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endif %}
+
+
+{#<!-- Section 6: Other Data -->#}
+{#{% set actual_has_other = false %}#}
+{#{% set predicted_has_other = false %}#}
+{#{% for key in report.actual_report.full_report %}#}
+{#    {% if key not in known_keys %}#}
+{#        {% set actual_has_other = true %}#}
+{#    {% endif %}#}
+{#{% endfor %}#}
+{#{% for key in report.predicted_report.full_report %}#}
+{#    {% if key not in known_keys %}#}
+{#        {% set predicted_has_other = true %}#}
+{#    {% endif %}#}
+{#{% endfor %}#}
+{#{% if actual_has_other or predicted_has_other %}#}
+{#<div class="section-wrapper">#}
+{#    <div class="column-box">#}
+{#        <div class="column-title">Actual Report</div>#}
+{#        <div class="metric-header">Section 6: Other Data</div>#}
+{#        {% if actual_has_other %}#}
+{#        <ul>#}
+{#            {% for key, value in report.actual_report.full_report.items() %}#}
+{#                {% if key not in known_keys %}#}
+{#                <li><strong>{{ key }}</strong><br><pre>{{ value | tojson(indent=2) }}</pre></li>#}
+{#                {% endif %}#}
+{#            {% endfor %}#}
+{#        </ul>#}
+{#        {% else %}#}
+{#        <p class="no-data">There is no data</p>#}
+{#        {% endif %}#}
+{#    </div>#}
+{#    <div class="column-box">#}
+{#        <div class="column-title">Predicted Report</div>#}
+{#        <div class="metric-header">Section 6: Other Data</div>#}
+{#        {% if predicted_has_other %}#}
+{#        <ul>#}
+{#            {% for key, value in report.predicted_report.full_report.items() %}#}
+{#                {% if key not in known_keys %}#}
+{#                <li><strong>{{ key }}</strong><br><pre>{{ value | tojson(indent=2) }}</pre></li>#}
+{#                {% endif %}#}
+{#            {% endfor %}#}
+{#        </ul>#}
+{#        {% else %}#}
+{#        <p class="no-data">There is no data</p>#}
+{#        {% endif %}#}
+{#    </div>#}
+{#</div>#}
+{#{% endif %}#}
+
+
+    <button type="submit" class="submit-button">Submit All Feedback</button>
+</form>
+
+<a href="/" class="back-link">&larr; Back to Dashboard</a>
+
 </body>
 </html>

@@ -8,16 +8,20 @@ from starlette import status
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.templating import Jinja2Templates
 
-from db_store import SessionLocal, PredictedNeurologyReportRecord, ReportSummary, get_db, NeurologyReportRecord
+from db_store import SessionLocal, PredictedNeurologyReportRecord, ReportSummary, get_db, NeurologyReportRecord, \
+    ReportKey, Question, Metric, Feedback
 from history_retrieval import generate_neurology_report
 
 from fastapi import FastAPI, Depends, Request
 
+from services.json_service import sort_report_keys
 from view_models import ReportViewModel
 
 app = FastAPI(title="Neurology Report API")
 
 templates = Jinja2Templates(directory="templates")
+
+templates.env.filters['sort_custom'] = sort_report_keys
 
 
 @app.get("/reports/add", summary="Submit a neurology report", status_code=201)
@@ -142,16 +146,79 @@ def view_report(report_id: int, request: Request, db: Session = Depends(get_db),
     if not predicted_report:
         return HTMLResponse(content="Report not found", status_code=404)
 
+    questions_by_section = {}
+    for key in actual_report.full_report.keys():
+        if key is not 'pathophysiologies':
+            questions = (
+                db.query(Question)
+                .join(Metric)
+                .filter(Metric.name == key)
+                .all()
+            )
+            questions_by_section[key] = questions
+
     view_model = ReportViewModel(
         actual_report=actual_report,
         predicted_report=predicted_report,
-        all_predicted_reports=all_predicted_records
+        all_predicted_reports=all_predicted_records,
+        questions_by_section=questions_by_section
     )
 
     return templates.TemplateResponse("report_detail.html", {
         "request": request,
         "report": view_model
     })
+
+
+@app.post("/submit-feedback")
+async def submit_feedback(
+        request: Request,
+        predicted_report_id: int = Form(...),
+        actual_report_id: int = Form(...),
+        db: Session = Depends(get_db),
+):
+    form_data = await request.form()
+    user_id = 1
+
+    report_key_cache = {}
+
+    for key, value in form_data.items():
+        if key.startswith("rating_"):
+            question_id = int(key.split("_")[1])
+            rating = int(value)
+            comment = form_data.get(f"comment_{question_id}", None)
+
+            # Get question + metric
+            question = db.query(Question).filter(Question.id == question_id).first()
+            if not question:
+                continue
+
+            metric = db.query(Metric).filter(Metric.id == question.metric_id).first()
+            if not metric:
+                continue
+
+            # Map metric.name to report_key_id
+            if metric.name not in report_key_cache:
+                report_key = db.query(ReportKey).filter(ReportKey.key_path == metric.name).first()
+                if not report_key:
+                    continue
+                report_key_cache[metric.name] = report_key.id
+
+            report_key_id = report_key_cache[metric.name]
+
+            feedback = Feedback(
+                user_id=user_id,
+                predicted_report_id=predicted_report_id,
+                report_key_id=report_key_id,
+                question_id=question_id,
+                rating=rating,
+                comment=comment
+            )
+            db.add(feedback)
+
+    db.commit()
+    return RedirectResponse(f"/report/{actual_report_id}?predicted_report_id={predicted_report_id}", status_code=303)
+
 
 # @app.get("/report/{actual_report_id}", response_class=HTMLResponse)
 # def view_report(

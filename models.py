@@ -52,3 +52,4 @@ class NeurologyReport(BaseModel):
                                                  description="Diagnostic investigations including urgency and priority")
     treatments: List[TreatmentRecommendation] = Field(...,
                                                       description="Initial treatment plan for each hypothesized diagnosis")
+
